@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- .
+extra-deps:
+- om-show-0.1.0.1
+resolver: lts-11.2
