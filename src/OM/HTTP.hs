@@ -30,7 +30,7 @@ import Data.Time (NominalDiffTime, UTCTime, getCurrentTime, diffUTCTime)
 import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
-import Network.HTTP.Types (urlEncode, Header, movedPermanently301,
+import Network.HTTP.Types (Header, movedPermanently301,
    internalServerError500, Status, statusCode, statusMessage)
 import Network.Wai (Middleware, Application, Response, ResponseReceived,
    mapResponseHeaders, responseLBS, responseStatus, requestMethod,
@@ -93,17 +93,16 @@ tlsRedirect url _req respond = respond $
   responseLBS
     movedPermanently301
     [
-      ("Location", urlEncode False url),
+      ("Location", url),
       ("Content-Type", "text/html")
     ]
     (
       "<html>\
         \<head>\
-          \<title>Owens Murray, LLC.</title>\
         \</head>\
         \<body>\
           \Please use our secure site,\
-          \<a href=\"" <> BSL.fromStrict (urlEncode False url) <> "\">here</a>\
+          \<a href=\"" <> BSL.fromStrict url <> "\">here</a>\
         \</body>\
       \</html>"
     )
