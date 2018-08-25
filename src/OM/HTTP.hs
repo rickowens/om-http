@@ -12,11 +12,14 @@ module OM.HTTP (
   overwriteResponseHeader,
   staticSite,
   logExceptionsAndContinue,
+  sshConnect,
 ) where
 
 
 import Control.Concurrent (threadDelay)
-import Control.Exception.Safe (tryAny, SomeException, throwM)
+import Control.Concurrent.Async (concurrently_)
+import Control.Exception.Safe (tryAny, SomeException, throwM, bracket,
+   finally)
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (Loc, LogSource, LogLevel, LogStr,
@@ -31,13 +34,19 @@ import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
 import Network.HTTP.Types (Header, movedPermanently301,
-   internalServerError500, Status, statusCode, statusMessage)
+   internalServerError500, Status, statusCode, statusMessage,
+   methodNotAllowed405)
+import Network.Socket (Socket, socket, Family(AF_INET),
+   SocketType(Stream), defaultProtocol, close, connect)
+import Network.Socket.ByteString (sendAll, recv)
 import Network.Wai (Middleware, Application, Response, ResponseReceived,
    mapResponseHeaders, responseLBS, responseStatus, requestMethod,
-   rawPathInfo, rawQueryString)
+   rawPathInfo, rawQueryString, responseRaw)
 import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
+import OM.Socket (resolveAddr)
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 
 
@@ -219,5 +228,52 @@ logExceptionsAndContinue logging app req respond = (`runLoggingT` logging) $
         $ "Internal Server Error [" <> showt uuid <> "]: "
         <> showt err
       return uuid
+
+
+{- |
+  'Middleware' that provides an HTTP @CONNECT@ passthrough to the local
+  ssh port. Useful primarily for bypassing content-inspection firewalls.
+-}
+sshConnect :: Middleware
+sshConnect app req respond =
+    case requestMethod req of
+      "CONNECT" ->
+        respond (responseRaw connProxy (responseLBS methodNotAllowed405 [] ""))
+      _ -> app req respond
+  where
+    {- |
+      Open a connection to the local ssh port and mediate the traffic between
+      that service and the client.
+    -}
+    connProxy :: IO ByteString -> (ByteString -> IO ()) -> IO ()
+    connProxy read_ write =
+      bracket
+        (socket AF_INET Stream defaultProtocol)
+        (\so ->  close so `finally` write "") 
+        (\so -> do
+          connect so =<< resolveAddr "127.0.0.1:22"
+          concurrently_
+            (pipeInbound so read_)
+            (pipeOutbound so write)
+        )
+
+    {- | Forward data coming from the client, going to the ssh service. -}
+    pipeInbound :: Socket -> IO ByteString -> IO ()
+    pipeInbound so read_ = do
+      bytes <- read_
+      if BS.null bytes
+        then return ()
+        else do
+          sendAll so bytes
+          pipeInbound so read_
+
+    {- | Forward data coming from the ssh service, going to the client. -}
+    pipeOutbound :: Socket -> (ByteString -> IO ()) -> IO ()
+    pipeOutbound so write = do
+      bytes <- recv so 4096
+      write bytes
+      if BS.null bytes
+        then return ()
+        else pipeOutbound so write
 
 
