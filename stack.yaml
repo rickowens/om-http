@@ -2,8 +2,8 @@ flags: {}
 packages:
 - .
 extra-deps:
-- legion-discovery-client-0.3.2.1
 - load-balancing-1.0.1.2
+- om-discovery-client-0.1.0.1
 - om-show-0.1.0.2
-- om-socket-0.6.1.0
-resolver: lts-12.6
+- om-socket-0.7.0.0
+resolver: lts-12.7
