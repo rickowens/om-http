@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                om-http
-version:             0.1.1.0
+version:             0.1.1.1
 synopsis:            Http utilities.
 -- description:         
 homepage:            https://github.com/owensmurray/om-http
@@ -34,7 +34,7 @@ library
     monad-logger     >= 0.3.28.2 && < 0.4,
     network          >= 2.6.3.5  && < 2.7,
     om-show          >= 0.1.0.1  && < 0.2,
-    om-socket        >= 0.6.0.0  && < 0.7,
+    om-socket        >= 0.7.0.0  && < 0.8,
     safe-exceptions  >= 0.1.7.0  && < 0.2,
     template-haskell >= 2.12.0.0 && < 2.14,
     text             >= 1.2.3.0  && < 1.3,
