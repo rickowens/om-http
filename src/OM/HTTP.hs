@@ -19,11 +19,11 @@ module OM.HTTP (
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (concurrently_)
 import Control.Exception.Safe (tryAny, SomeException, throwM, bracket,
-   finally)
+  finally)
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (Loc, LogSource, LogLevel, LogStr,
-   MonadLoggerIO, logError, runLoggingT, logInfo)
+  MonadLoggerIO, logError, runLoggingT, logInfo)
 import Data.ByteString (ByteString)
 import Data.Semigroup ((<>))
 import Data.String (fromString)
@@ -34,14 +34,14 @@ import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
 import Network.HTTP.Types (Header, movedPermanently301,
-   internalServerError500, Status, statusCode, statusMessage,
-   methodNotAllowed405)
+  internalServerError500, Status, statusCode, statusMessage,
+  methodNotAllowed405)
 import Network.Socket (Socket, socket, Family(AF_INET),
-   SocketType(Stream), defaultProtocol, close, connect)
+  SocketType(Stream), defaultProtocol, close, connect)
 import Network.Socket.ByteString (sendAll, recv)
 import Network.Wai (Middleware, Application, Response, ResponseReceived,
-   mapResponseHeaders, responseLBS, responseStatus, requestMethod,
-   rawPathInfo, rawQueryString, responseRaw)
+  mapResponseHeaders, responseLBS, responseStatus, requestMethod,
+  rawPathInfo, rawQueryString, responseRaw)
 import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
