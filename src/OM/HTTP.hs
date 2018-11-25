@@ -13,6 +13,7 @@ module OM.HTTP (
   staticSite,
   logExceptionsAndContinue,
   sshConnect,
+  staticPage,
 ) where
 
 
@@ -35,13 +36,13 @@ import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
 import Network.HTTP.Types (Header, movedPermanently301,
   internalServerError500, Status, statusCode, statusMessage,
-  methodNotAllowed405)
+  methodNotAllowed405, ok200)
 import Network.Socket (Socket, socket, Family(AF_INET),
   SocketType(Stream), defaultProtocol, close, connect)
 import Network.Socket.ByteString (sendAll, recv)
 import Network.Wai (Middleware, Application, Response, ResponseReceived,
   mapResponseHeaders, responseLBS, responseStatus, requestMethod,
-  rawPathInfo, rawQueryString, responseRaw)
+  rawPathInfo, rawQueryString, responseRaw, pathInfo)
 import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
@@ -275,5 +276,17 @@ sshConnect app req respond =
       if BS.null bytes
         then return ()
         else pipeOutbound so write
+
+
+{- | Serve a static page at the given 'pathInfo'. -}
+staticPage
+  :: [Text] {- ^ The path info. -}
+  -> ByteString {- ^ The content type. -}
+  -> BSL.ByteString {- ^ The response body content. -}
+  -> Middleware
+staticPage path ct bytes app req respond =
+  if pathInfo req == path
+    then respond (responseLBS ok200 [("Content-Type", ct)] bytes)
+    else app req respond
 
 
