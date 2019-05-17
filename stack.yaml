@@ -4,8 +4,7 @@ packages:
 extra-deps:
 - cached-io-1.1.0.0
 - load-balancing-1.0.1.3
-- om-discovery-client-0.1.1.1
-- om-show-0.1.0.3
+- om-discovery-client-0.1.1.2
+- om-show-0.1.1.0
 - om-socket-0.7.0.1
-- text-show-3.7.5
-resolver: lts-13.0
+resolver: lts-13.19
