@@ -14,6 +14,7 @@ module OM.HTTP (
   logExceptionsAndContinue,
   sshConnect,
   staticPage,
+  AllTypes,
 ) where
 
 
@@ -47,6 +48,7 @@ import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
 import OM.Socket (resolveAddr)
+import Servant.API (Accept, contentType)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 
@@ -288,5 +290,11 @@ staticPage path ct bytes app req respond =
   if pathInfo req == path
     then respond (responseLBS ok200 [("Content-Type", ct)] bytes)
     else app req respond
+
+
+{- | Accept all content types. -}
+data AllTypes
+instance Accept AllTypes where
+  contentType _proxy = "*/*"
 
 
