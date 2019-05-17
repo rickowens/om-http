@@ -36,6 +36,7 @@ library
     om-show          >= 0.1.0.1  && < 0.2,
     om-socket        >= 0.7.0.0  && < 0.8,
     safe-exceptions  >= 0.1.7.0  && < 0.2,
+    servant          >= 0.15     && < 0.16,
     template-haskell >= 2.14.0.0 && < 2.15,
     text             >= 1.2.3.0  && < 1.3,
     time             >= 1.8.0.2  && < 1.9,
