@@ -7,4 +7,4 @@ extra-deps:
 - om-discovery-client-0.1.1.2
 - om-show-0.1.1.0
 - om-socket-0.7.0.1
-resolver: lts-13.19
+resolver: lts-13.30

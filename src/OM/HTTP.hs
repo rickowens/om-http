@@ -15,6 +15,7 @@ module OM.HTTP (
   sshConnect,
   staticPage,
   AllTypes,
+  defaultIndex,
 ) where
 
 
@@ -296,5 +297,13 @@ staticPage path ct bytes app req respond =
 data AllTypes
 instance Accept AllTypes where
   contentType _proxy = "*/*"
+
+
+{- | Rewrite: "/" -> "/index.html". -}
+defaultIndex :: Middleware
+defaultIndex app request respond =
+  case pathInfo request of
+    [] -> app request {pathInfo = ["index.html"]} respond
+    _ -> app request respond
 
 
