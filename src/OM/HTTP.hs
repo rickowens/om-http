@@ -16,6 +16,7 @@ module OM.HTTP (
   staticPage,
   AllTypes,
   defaultIndex,
+  BearerToken(..),
 ) where
 
 
@@ -49,7 +50,7 @@ import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
 import OM.Socket (resolveAddr)
-import Servant.API (Accept, contentType)
+import Servant.API (Accept, contentType, ToHttpApiData, toUrlPiece)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 
@@ -305,5 +306,16 @@ defaultIndex app request respond =
   case pathInfo request of
     [] -> app request {pathInfo = ["index.html"]} respond
     _ -> app request respond
+
+
+{- |
+  A bearer token, which is an instance of the necessary type classes to
+  be useful as a servant header value.
+-}
+newtype BearerToken = BearerToken {
+    unBearerToken :: Text
+  }
+instance ToHttpApiData BearerToken where
+  toUrlPiece t = "Bearer " <> unBearerToken t
 
 
