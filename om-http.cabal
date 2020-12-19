@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                om-http
-version:             0.1.5.1
+version:             0.1.5.2
 synopsis:            Http utilities.
 -- description:         
 homepage:            https://github.com/owensmurray/om-http
