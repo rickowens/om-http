@@ -29,7 +29,6 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (Loc, LogSource, LogLevel, LogStr,
   MonadLoggerIO, logError, runLoggingT, logInfo)
 import Data.ByteString (ByteString)
-import Data.Semigroup ((<>))
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
