@@ -2,8 +2,6 @@ flags: {}
 packages:
 - .
 extra-deps:
-  - http://localhost:4563/package/load-balancing-1.0.2.0.tar.gz
-  - http://localhost:4563/package/om-discovery-client-0.1.2.1.tar.gz
   - http://localhost:4563/package/om-show-0.1.1.1.tar.gz
-  - http://localhost:4563/package/om-socket-0.8.0.0.tar.gz
+  - http://localhost:4563/package/om-socket-0.9.0.0.tar.gz
 resolver: lts-16.26
