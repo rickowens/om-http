@@ -2,6 +2,6 @@ flags: {}
 packages:
 - .
 extra-deps:
-  - http://localhost:4563/package/om-show-0.1.1.1.tar.gz
-  - http://localhost:4563/package/om-socket-0.9.0.0.tar.gz
+  - git: git@github.com:owensmurray/om-show.git
+    commit: 523fd1f8e8e7e5f6bf492ec8db7c01c9a6d2b551
 resolver: lts-16.26
