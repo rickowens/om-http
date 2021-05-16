@@ -22,34 +22,34 @@ module OM.HTTP (
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (concurrently_)
-import Control.Exception.Safe (tryAny, SomeException, throwM, bracket,
-  finally)
+import Control.Exception.Safe (SomeException, bracket, finally, throwM,
+  tryAny)
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Logger (Loc, LogSource, LogLevel, LogStr,
-  MonadLoggerIO, logError, runLoggingT, logInfo)
+import Control.Monad.Logger (Loc, LogLevel, LogSource, LogStr,
+  MonadLoggerIO, logError, logInfo, runLoggingT)
 import Data.ByteString (ByteString)
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
-import Data.Time (NominalDiffTime, UTCTime, getCurrentTime, diffUTCTime)
+import Data.Time (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
 import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
-import Network.HTTP.Types (Header, movedPermanently301,
-  internalServerError500, Status, statusCode, statusMessage,
-  methodNotAllowed405, ok200)
-import Network.Socket (Socket, socket, Family(AF_INET),
-  SocketType(Stream), defaultProtocol, close, connect)
-import Network.Socket.ByteString (sendAll, recv)
-import Network.Wai (Middleware, Application, Response, ResponseReceived,
-  mapResponseHeaders, responseLBS, responseStatus, requestMethod,
-  rawPathInfo, rawQueryString, responseRaw, pathInfo)
+import Network.HTTP.Types (Header, Status, internalServerError500,
+  methodNotAllowed405, movedPermanently301, ok200, statusCode,
+  statusMessage)
+import Network.Socket (Family(AF_INET), SocketType(Stream), Socket,
+  close, connect, defaultProtocol, socket)
+import Network.Socket.ByteString (recv, sendAll)
+import Network.Wai (Application, Middleware, Response, ResponseReceived,
+  mapResponseHeaders, pathInfo, rawPathInfo, rawQueryString,
+  requestMethod, responseLBS, responseRaw, responseStatus)
 import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
 import OM.Socket (resolveAddr)
-import Servant.API (Accept, contentType, ToHttpApiData, toUrlPiece)
+import Servant.API (Accept, ToHttpApiData, contentType, toUrlPiece)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 
