@@ -39,8 +39,9 @@ import Data.Version (Version, showVersion)
 import Network.HTTP.Types (Header, Status, internalServerError500,
   methodNotAllowed405, movedPermanently301, ok200, statusCode,
   statusMessage)
-import Network.Socket (Family(AF_INET), SocketType(Stream), Socket,
-  close, connect, defaultProtocol, socket)
+import Network.Socket (AddrInfo(addrAddress), Family(AF_INET),
+  SocketType(Stream), Socket, close, connect, defaultProtocol,
+  getAddrInfo, socket)
 import Network.Socket.ByteString (recv, sendAll)
 import Network.Wai (Application, Middleware, Response, ResponseReceived,
   mapResponseHeaders, pathInfo, rawPathInfo, rawQueryString,
@@ -48,7 +49,6 @@ import Network.Wai (Application, Middleware, Response, ResponseReceived,
 import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
-import OM.Socket (resolveAddr)
 import Servant.API (Accept, ToHttpApiData, contentType, toUrlPiece)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
@@ -255,7 +255,12 @@ sshConnect app req respond =
         (socket AF_INET Stream defaultProtocol)
         (\so ->  close so `finally` write "") 
         (\so -> do
-          connect so =<< resolveAddr "127.0.0.1:22"
+          connect so =<<
+            (
+              getAddrInfo Nothing (Just "127.0.0.1") (Just "22") >>= \case
+                [] -> fail "Address not found: 127.0.0.1:22"
+                sa:_ -> return (addrAddress sa)
+            )
           concurrently_
             (pipeInbound so read_)
             (pipeOutbound so write)
