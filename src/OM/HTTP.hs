@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 {- | Miscellaneous HTTP Utilities. -}
 module OM.HTTP (
@@ -17,10 +18,23 @@ module OM.HTTP (
   AllTypes,
   defaultIndex,
   BearerToken(..),
-  staticSite,
+  staticMarkdown,
 ) where
 
 
+import Prelude (Bool(False, True), Either(Left, Right), Eq((/=), (==)),
+  Foldable(elem, foldMap, foldr), Functor(fmap), Maybe(Just, Nothing),
+  Monad((>>), (>>=), return), MonadFail(fail), Monoid(mempty), Ord((<=)),
+  RealFrac(truncate), Semigroup((<>)), Show(show), Traversable(mapM),
+  ($), (++), (.), (<$>), (=<<), FilePath, IO, Int, String, break, concat,
+  drop, filter, fst, id, mapM_, otherwise, putStrLn, undefined, zip)
+
+import CMarkGFM (ListType(BULLET_LIST, ORDERED_LIST), Node(Node),
+  NodeType(BLOCK_QUOTE, CODE, CODE_BLOCK, CUSTOM_BLOCK, CUSTOM_INLINE,
+  DOCUMENT, EMPH, HEADING, HTML_BLOCK, HTML_INLINE, IMAGE, ITEM,
+  LINEBREAK, LINK, LIST, PARAGRAPH, SOFTBREAK, STRIKETHROUGH, STRONG,
+  TABLE, TABLE_CELL, TABLE_ROW, TEXT, THEMATIC_BREAK), PosInfo(PosInfo),
+  Level, commonmarkToNode, listType)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (concurrently_)
 import Control.Exception.Safe (SomeException, bracket, finally, throwM,
@@ -30,17 +44,18 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (Loc, LogLevel, LogSource, LogStr,
   MonadLoggerIO, logError, logInfo, runLoggingT)
 import Data.ByteString (ByteString)
-import Data.List ((\\))
+import Data.List ((\\), intercalate)
 import Data.Maybe (catMaybes)
-import Data.String (fromString)
+import Data.String (IsString, fromString)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
 import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
-import Language.Haskell.TH (Q, TExp, runIO)
-import Language.Haskell.TH.Syntax (addDependentFile)
+import Language.Haskell.TH (Exp(AppE, LitE, VarE), Lit(StringL), Q,
+  TExp, runIO)
+import Language.Haskell.TH.Syntax (TExp(TExp), addDependentFile)
 import Network.HTTP.Types (Header, Status, internalServerError500,
   methodNotAllowed405, movedPermanently301, ok200, statusCode,
   statusMessage)
@@ -53,17 +68,22 @@ import Network.Wai (Application, Middleware, Response, ResponseReceived,
   mapResponseHeaders, pathInfo, rawPathInfo, rawQueryString,
   requestMethod, responseLBS, responseRaw, responseStatus)
 import Network.Wai.Handler.Warp (run)
-import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
 import Servant.API (Accept, ToHttpApiData, contentType, toUrlPiece)
 import System.Directory (getDirectoryContents)
 import System.FilePath.Posix ((</>), combine)
 import System.Posix.Files (getFileStatus, isDirectory, isRegularFile)
+import Text.Blaze.Html5 ((!), Attribute, AttributeValue, Html, a, br,
+  code, div, em, hr, img, li, ol, p, pre, strong, text, toValue, ul)
+import Text.Blaze.Html5.Attributes (class_, href, src)
+import Text.Blaze.Renderer.String (renderMarkup)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as BSL8
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import qualified Text.Blaze.Html5.Attributes as HTML
 
 
 {- |
@@ -359,8 +379,8 @@ staticSite baseDir = join . runIO $ do
           static (filename, content) app req respond =
             let
               {- | Guess the content type of the static file. -}
-              contentType :: ByteString
-              contentType =
+              ct :: ByteString
+              ct =
                 defaultMimeLookup
                 . fromString
                 $ filename
@@ -370,7 +390,7 @@ staticSite baseDir = join . runIO $ do
                   respond (
                       responseLBS
                         ok200
-                        [("content-type", contentType)]
+                        [("content-type", ct)]
                         (BSL8.pack content)
                     )
                 else app req respond
@@ -413,5 +433,317 @@ staticSite baseDir = join . runIO $ do
         allContent
           <- mapM (fmap BS8.unpack . BS.readFile . combine baseDir) allFiles
         return (zip (drop 2 <$> allFiles) allContent)
+
+
+{- | Read and render a markdown file at compile time. -}
+staticMarkdown :: (IsString a) => FilePath -> Q (TExp a)
+staticMarkdown file = do
+    addDependentFile file
+    fmap
+      (
+        TExp
+        . AppE (VarE 'fromString)
+        . LitE
+        . StringL
+        . renderMarkup
+        . render
+        . (:[])
+        . commonmarkToNode mempty mempty
+      )
+      (runIO (TIO.readFile file))
+  where
+    {- | Render some random markdown, with table of contents. -}
+    render :: [Node] -> Html
+    render nodes =
+      div ! doc $ do
+        renderToc nodes
+        renderBody nodes
+
+
+    {- | Render the body of some random markdown. -}
+    renderBody :: [Node] -> Html
+
+    renderBody [] = mempty
+
+    renderBody (Node _ DOCUMENT docNodes:remaining) = do
+      div ! docBody $ renderBody docNodes
+      renderBody remaining
+
+    renderBody (Node _ (HEADING level) hnodes:nodes) =
+        let
+          sectionNodes :: [Node]
+          remaining :: [Node]
+
+          (sectionNodes, remaining) = break (isNewSection level) nodes
+        in
+          renderSection level hnodes sectionNodes
+          <> renderBody remaining
+      where
+        {- | Render an individual documentation section or subsection. -}
+        renderSection :: Level -> [Node] -> [Node] -> Html
+        renderSection _level heading section =
+          div ! docSection $ do
+            div ! docSectionHeading $
+              a ! HTML.id (hash heading) $
+                renderBody heading
+            div ! docSectionBody $ renderBody section
+
+
+    renderBody (Node _ THEMATIC_BREAK children:remaining) =
+      hr <> renderBody children <> renderBody remaining
+
+    renderBody (Node _ PARAGRAPH children:remaining) = do
+      p $
+        renderBody children
+      renderBody remaining
+
+    renderBody (Node _ BLOCK_QUOTE children:remaining) =
+      undefined children remaining
+
+    renderBody (Node _ (HTML_BLOCK txt) children:remaining) =
+      undefined txt children remaining
+
+    renderBody (Node _ (CUSTOM_BLOCK _ _) children:remaining) =
+      undefined children remaining
+
+    renderBody (Node _ (CODE_BLOCK _info txt) children:remaining) = do
+      pre $
+        code $
+          text txt
+      renderBody children
+      renderBody remaining
+
+    renderBody (Node _ (LIST attrs) children:remaining) =
+      let
+        tag :: Html -> Html
+        tag =
+          case listType attrs of
+            BULLET_LIST -> ul
+            ORDERED_LIST -> ol
+      in do
+        tag $ renderBody children
+        renderBody remaining
+
+    renderBody (Node _ ITEM children:remaining) = do
+      li $ renderBody children
+      renderBody remaining
+
+    renderBody (Node _ (TEXT txt) children:remaining) = do
+      text txt
+      renderBody children
+      renderBody remaining
+
+    renderBody (Node _ SOFTBREAK children:remaining) =
+      " " <> renderBody children <> renderBody remaining
+
+    renderBody (Node _ LINEBREAK children:remaining) = do
+      br
+      renderBody children
+      renderBody remaining
+
+    renderBody (Node _ (HTML_INLINE txt) children:remaining) =
+      undefined children remaining txt
+
+    renderBody (Node _ (CUSTOM_INLINE onenter onexit) children:remaining) =
+      undefined children remaining onenter onexit
+
+    renderBody (Node _ (CODE txt) children:remaining) = do
+      code $
+        text txt
+      renderBody children
+      renderBody remaining
+
+    renderBody (Node _ EMPH children:remaining) = do
+      em $ renderBody children
+      renderBody remaining
+
+    renderBody (Node _ STRONG children:remaining) = do
+      strong $ renderBody children
+      renderBody remaining
+
+    renderBody (Node _ (LINK url _title) children:remaining) = do
+      a ! src (toValue url) $ renderBody children
+      renderBody remaining
+
+    renderBody (Node _ (IMAGE url _title) children:remaining) = do
+      img ! src (toValue url)
+      renderBody children
+      renderBody remaining
+
+    renderBody (Node _ STRIKETHROUGH children:remaining) =
+      undefined children remaining
+
+    renderBody (Node _ (TABLE alignments) children:remaining) =
+      undefined children remaining alignments
+
+    renderBody (Node _ TABLE_ROW children:remaining) =
+      undefined children remaining
+
+    renderBody (Node _ TABLE_CELL children:remaining) =
+      undefined children remaining
+
+
+    {- | Documentation class. -}
+    doc :: Attribute
+    doc = class_ "documentation"
+
+
+    {- | Documentation TOC class. -}
+    docToc :: Attribute
+    docToc = class_ "documentation-toc"
+
+
+    {- | Documentation body class. -}
+    docBody :: Attribute
+    docBody = class_ "documentation-body"
+
+
+    {- | Documentation section class. -}
+    docSection :: Attribute
+    docSection = class_ "documentation-section"
+
+
+    {- | Documentation section heading class. -}
+    docSectionHeading :: Attribute
+    docSectionHeading = class_ "documentation-section-heading"
+
+
+    {- | Documentation section body class. -}
+    docSectionBody :: Attribute
+    docSectionBody = class_ "documentation-section-body"
+
+
+    {- | Create an Id for the node. -}
+    hash :: [Node] -> AttributeValue
+    hash (Node (Just (PosInfo l m n o)) _ _:_) =
+      fromString
+      . intercalate "-"
+      . fmap show
+      $ [l, m, n, o]
+    hash _ = "undefined"
+
+
+    {- | Render a table of contents. -}
+    renderToc :: [Node] -> Html
+    renderToc [] = mempty
+    renderToc (Node _ DOCUMENT nodes:remaining) = do
+      div ! docToc $ do
+        div ! class_ "toc-header" $ text "Table of Contents"
+        renderToc nodes
+      renderToc remaining
+    renderToc (Node _ THEMATIC_BREAK nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ PARAGRAPH nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ BLOCK_QUOTE nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ ITEM nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ SOFTBREAK nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ LINEBREAK nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ EMPH nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ STRONG nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ STRIKETHROUGH nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ TABLE_ROW nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ TABLE_CELL nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (HTML_BLOCK _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (CUSTOM_BLOCK _ _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (CODE_BLOCK _ _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (HEADING level) nodes:remaining) =
+        let
+          followingSections :: [Node]
+          (sectionNodes, followingSections) = break (isNewSection level) remaining
+        in do
+          div $ do
+            renderTocEntry nodes
+            renderToc sectionNodes
+          renderToc followingSections
+      where
+        renderTocEntry :: [Node] -> Html
+        renderTocEntry tocNodes =
+          a ! href ("#" <> hash tocNodes) $ text (foldMap getText tocNodes)
+
+    renderToc (Node _ (LIST _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (TEXT _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (HTML_INLINE _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (CUSTOM_INLINE _ _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (CODE _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (LINK _ _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (IMAGE _ _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+    renderToc (Node _ (TABLE _) nodes:remaining) = do
+      renderToc nodes
+      renderToc remaining
+
+
+    {- | Figure out if the node represents the beginning of a new section. -}
+    isNewSection :: Level -> Node -> Bool
+    isNewSection level (Node _ (HEADING l) _) | l <= level = True
+    isNewSection _level _ = False
+
+
+    {- | Get the text value of a node. -}
+    getText :: Node -> Text
+    getText (Node _ DOCUMENT nodes) = foldMap getText nodes
+    getText (Node _ THEMATIC_BREAK nodes) = foldMap getText nodes
+    getText (Node _ PARAGRAPH nodes) = foldMap getText nodes
+    getText (Node _ BLOCK_QUOTE nodes) = foldMap getText nodes
+    getText (Node _ (HTML_BLOCK _) nodes) = foldMap getText nodes
+    getText (Node _ (CUSTOM_BLOCK _ _) nodes) = foldMap getText nodes
+    getText (Node _ (CODE_BLOCK _ _) nodes) = foldMap getText nodes
+    getText (Node _ (HEADING _) nodes) = foldMap getText nodes
+    getText (Node _ (LIST _) nodes) = foldMap getText nodes
+    getText (Node _ ITEM nodes) = foldMap getText nodes
+    getText (Node _ (TEXT txt) nodes) = txt <> foldMap getText nodes
+    getText (Node _ SOFTBREAK nodes) = foldMap getText nodes
+    getText (Node _ LINEBREAK nodes) = foldMap getText nodes
+    getText (Node _ (HTML_INLINE _) nodes) = foldMap getText nodes
+    getText (Node _ (CUSTOM_INLINE _ _) nodes) = foldMap getText nodes
+    getText (Node _ (CODE _) nodes) = foldMap getText nodes
+    getText (Node _ EMPH nodes) = foldMap getText nodes
+    getText (Node _ STRONG nodes) = foldMap getText nodes
+    getText (Node _ (LINK _ _) nodes) = foldMap getText nodes
+    getText (Node _ (IMAGE _ _) nodes) = foldMap getText nodes
+    getText (Node _ STRIKETHROUGH nodes) = foldMap getText nodes
+    getText (Node _ (TABLE _) nodes) = foldMap getText nodes
+    getText (Node _ TABLE_ROW nodes) = foldMap getText nodes
+    getText (Node _ TABLE_CELL nodes) = foldMap getText nodes
 
 
