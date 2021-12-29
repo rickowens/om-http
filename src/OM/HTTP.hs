@@ -15,7 +15,6 @@ module OM.HTTP (
   logExceptionsAndContinue,
   sshConnect,
   staticPage,
-  AllTypes,
   defaultIndex,
   BearerToken(..),
   staticMarkdown,
@@ -69,7 +68,7 @@ import Network.Wai (Application, Middleware, Response, ResponseReceived,
   requestMethod, responseLBS, responseRaw, responseStatus)
 import Network.Wai.Handler.Warp (run)
 import OM.Show (showt)
-import Servant.API (Accept, ToHttpApiData, contentType, toUrlPiece)
+import Servant.API (ToHttpApiData, toUrlPiece)
 import System.Directory (getDirectoryContents)
 import System.FilePath.Posix ((</>), combine)
 import System.Posix.Files (getFileStatus, isDirectory, isRegularFile)
@@ -328,12 +327,6 @@ staticPage path ct bytes app req respond =
   if pathInfo req == path
     then respond (responseLBS ok200 [("Content-Type", ct)] bytes)
     else app req respond
-
-
-{- | Accept all content types. -}
-data AllTypes
-instance Accept AllTypes where
-  contentType _proxy = "*/*"
 
 
 {- | Rewrite: "/" -> "/index.html". -}
