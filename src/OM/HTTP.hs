@@ -17,6 +17,7 @@ module OM.HTTP (
   AllTypes,
   defaultIndex,
   BearerToken(..),
+  staticSite,
 ) where
 
 
@@ -24,11 +25,13 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (concurrently_)
 import Control.Exception.Safe (SomeException, bracket, finally, throwM,
   tryAny)
-import Control.Monad (void)
+import Control.Monad (join, void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (Loc, LogLevel, LogSource, LogStr,
   MonadLoggerIO, logError, logInfo, runLoggingT)
 import Data.ByteString (ByteString)
+import Data.List ((\\))
+import Data.Maybe (catMaybes)
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
@@ -36,9 +39,12 @@ import Data.Time (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
 import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
+import Language.Haskell.TH (Q, TExp, runIO)
+import Language.Haskell.TH.Syntax (addDependentFile)
 import Network.HTTP.Types (Header, Status, internalServerError500,
   methodNotAllowed405, movedPermanently301, ok200, statusCode,
   statusMessage)
+import Network.Mime (defaultMimeLookup)
 import Network.Socket (AddrInfo(addrAddress), Family(AF_INET),
   SocketType(Stream), Socket, close, connect, defaultProtocol,
   getAddrInfo, socket)
@@ -50,8 +56,14 @@ import Network.Wai.Handler.Warp (run)
 import OM.HTTP.StaticSite (staticSite)
 import OM.Show (showt)
 import Servant.API (Accept, ToHttpApiData, contentType, toUrlPiece)
+import System.Directory (getDirectoryContents)
+import System.FilePath.Posix ((</>), combine)
+import System.Posix.Files (getFileStatus, isDirectory, isRegularFile)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Lazy.Char8 as BSL8
+import qualified Data.Text as T
 
 
 {- |
@@ -321,5 +333,85 @@ newtype BearerToken = BearerToken {
   }
 instance ToHttpApiData BearerToken where
   toUrlPiece t = "Bearer " <> unBearerToken t
+
+
+{- |
+  The Template-Haskell splice @$$(staticSite dir)@ will build a
+  'Middleware' that serves a set of static files determined at
+  compile time, or else passes the request to the underlying
+  'Network.Wai.Application'.
+
+  All files under @dir@ will be served relative to the root path of
+  your web server, so the file @\<dir\>\/foo\/bar.html@ will be served at
+  @http://your-web-site.com/foo/bar.html@
+-}
+staticSite :: FilePath -> Q (TExp Middleware)
+staticSite baseDir = join . runIO $ do
+    files <- readStaticFiles
+    mapM_ (printResource . fst) files
+    return $ mapM_ (addDependentFile . ((baseDir ++ "/") ++) . fst) files >> [||
+        let
+          {- |
+            Build a middleware that serves a single static file path, or
+            delegates to the underlying application.
+          -}
+          static :: (FilePath, String) -> Middleware
+          static (filename, content) app req respond =
+            let
+              {- | Guess the content type of the static file. -}
+              contentType :: ByteString
+              contentType =
+                defaultMimeLookup
+                . fromString
+                $ filename
+            in
+              if pathInfo req == T.split (== '/') (T.pack filename)
+                then
+                  respond (
+                      responseLBS
+                        ok200
+                        [("content-type", contentType)]
+                        (BSL8.pack content)
+                    )
+                else app req respond
+        in
+          foldr (.) id (fmap static files) :: Middleware
+      ||]
+  where
+    printResource :: String -> IO ()
+    printResource file =
+      putStrLn ("Generating static resource for: " ++ show file)
+
+    {- | Reads the static files that make up the admin user interface. -}
+    readStaticFiles :: IO [(FilePath, String)]
+    readStaticFiles =
+      let
+        findAll :: FilePath -> IO [FilePath]
+        findAll dir = do
+            contents <-
+              (\\ [".", ".."]) <$> getDirectoryContents (baseDir </> dir)
+            dirs <- catMaybes <$> mapM justDir contents
+            files <- catMaybes <$> mapM justFile contents
+            more <- concat <$> mapM (findAll . combine dir) dirs
+            return $ (combine dir <$> files) ++ more
+          where
+            justFile :: FilePath -> IO (Maybe FilePath)
+            justFile filename = do
+              isfile <-
+                isRegularFile <$>
+                  getFileStatus (baseDir </> dir </> filename)
+              return $ if isfile then Just filename else Nothing
+
+            justDir :: FilePath -> IO (Maybe FilePath)
+            justDir filename = do
+              isdir <-
+                isDirectory <$>
+                  getFileStatus (baseDir </> dir </> filename)
+              return $ if isdir then Just filename else Nothing
+      in do
+        allFiles <- findAll "."
+        allContent
+          <- mapM (fmap BS8.unpack . BS.readFile . combine baseDir) allFiles
+        return (zip (drop 2 <$> allFiles) allContent)
 
 
