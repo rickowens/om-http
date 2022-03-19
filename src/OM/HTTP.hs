@@ -174,7 +174,16 @@ overwriteResponseHeader (name, value) app req respond =
       (name, value) : filter ((/= name) . fst) headers
 
 
-{- | Logs an HTTP requst the OM way. -}
+{- |
+  Logs an HTTP request by emitting two log messages. The first messages
+  logs that the request has begun. The second messages logs the status
+  result and timing of the request once it is finished.
+
+  > Starting request: GET /foo
+  > GET /foo --> 200 Ok (0.001s)
+
+  This can help debugging requests that hang or crash for whatever reason.
+-}
 requestLogging
   :: (Loc -> LogSource -> LogLevel -> LogStr -> IO ())
   -> Middleware
@@ -329,7 +338,7 @@ staticPage path ct bytes app req respond =
     else app req respond
 
 
-{- | Rewrite: "/" -> "/index.html". -}
+{- | Rewrite: "\/" -> "/index.html". -}
 defaultIndex :: Middleware
 defaultIndex app request respond =
   case pathInfo request of
@@ -357,6 +366,9 @@ instance ToHttpApiData BearerToken where
   All files under @dir@ will be served relative to the root path of
   your web server, so the file @\<dir\>\/foo\/bar.html@ will be served at
   @http://your-web-site.com/foo/bar.html@
+
+  The content-type of the files being served will be guessed using
+  'defaultMimeLookup'.
 -}
 staticSite :: FilePath -> Q (TExp Middleware)
 staticSite baseDir = join . runIO $ do
@@ -428,7 +440,14 @@ staticSite baseDir = join . runIO $ do
         return (zip (drop 2 <$> allFiles) allContent)
 
 
-{- | Read and render a markdown file at compile time. -}
+{- |
+  Read and render a markdown file at compile time.
+
+  The Template-Haskell splice @$$(staticMarkdown "docs/api.md")@ will
+  produce a Haskell string-like value that contains the markdown in
+  "docs/api.md" rendered as HTML. You can use 'staticPage' when you want
+  to actually serve the rendered markdown.
+-}
 staticMarkdown :: (IsString a) => FilePath -> Q (TExp a)
 staticMarkdown file = do
     addDependentFile file
