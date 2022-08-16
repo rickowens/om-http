@@ -52,8 +52,8 @@ import Data.Time (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
 import Data.UUID (UUID)
 import Data.UUID.V1 (nextUUID)
 import Data.Version (Version, showVersion)
-import Language.Haskell.TH (Exp(AppE, LitE, VarE), Lit(StringL), Q,
-  TExp, runIO)
+import Language.Haskell.TH (Code(examineCode), Exp(AppE, LitE, VarE),
+  Lit(StringL), Q, TExp, runIO)
 import Language.Haskell.TH.Syntax (TExp(TExp), addDependentFile)
 import Network.HTTP.Types (Header, Status, internalServerError500,
   methodNotAllowed405, movedPermanently301, ok200, statusCode,
@@ -374,7 +374,7 @@ staticSite :: FilePath -> Q (TExp Middleware)
 staticSite baseDir = join . runIO $ do
     files <- readStaticFiles
     mapM_ (printResource . fst) files
-    return $ mapM_ (addDependentFile . ((baseDir ++ "/") ++) . fst) files >> [||
+    return $ mapM_ (addDependentFile . ((baseDir ++ "/") ++) . fst) files >> examineCode [||
         let
           {- |
             Build a middleware that serves a single static file path, or
