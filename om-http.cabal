@@ -17,7 +17,7 @@ extra-source-files:
 common dependencies
   build-depends:
     , async            >= 2.2.4     && < 2.3
-    , base             >= 4.15.1.0  && < 4.16
+    , base             >= 4.15.0.0  && < 4.16
     , blaze-html       >= 0.9.1.2   && < 0.10
     , blaze-markup     >= 0.8.2.8   && < 0.9
     , bytestring       >= 0.10.12.1 && < 0.11
