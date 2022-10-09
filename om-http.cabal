@@ -4,7 +4,7 @@ version:             0.2.0.3
 synopsis:            Http utilities.
 description:         Random HTTP utilities.
 homepage:            https://github.com/owensmurray/om-http
-license:             NONE
+license:             MIT
 license-file:        LICENSE
 author:              Rick Owens
 maintainer:          rick@owensmurray.com
@@ -13,6 +13,7 @@ category:            Web
 build-type:          Simple
 extra-source-files:
   README.md
+  LICENSE
 
 common dependencies
   build-depends:
