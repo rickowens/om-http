@@ -1,0 +1,65 @@
+!_TAG_FILE_FORMAT	2	//
+!_TAG_FILE_SORTED	1	//
+!_TAG_FILE_ENCODING	utf-8	//
+!_TAG_PROGRAM_AUTHOR	Marcin Szamotulski	//
+!_TAG_PROGRAM_NAME	ghc-tags-plugin	//
+!_TAG_PROGRAM_URL	https://hackage.haskell.org/package/ghc-tags-plugin	//
+!_TAG_PROGRAM_VERSION	0.5.2.0	//
+!_TAG_FIELD_DESCRIPTION!Haskell	type	/type of expression/
+!_TAG_FIELD_DESCRIPTION!Haskell	ffi	/foreign object name/
+!_TAG_FIELD_DESCRIPTION!Haskell	file	/not exported term/
+!_TAG_FIELD_DESCRIPTION!Haskell	instance	/class, type or data type instance/
+!_TAG_FIELD_DESCRIPTION!Haskell	Kind	/kind of a type/
+!_TAG_KIND_DESCRIPTION!Haskell	M	/module name/
+!_TAG_KIND_DESCRIPTION!Haskell	`	/module top level term, but not a function/
+!_TAG_KIND_DESCRIPTION!Haskell	λ	/module top level function term/
+!_TAG_KIND_DESCRIPTION!Haskell	Λ	/type constructor/
+!_TAG_KIND_DESCRIPTION!Haskell	c	/data constructor/
+!_TAG_KIND_DESCRIPTION!Haskell	g	/gadt constructor/
+!_TAG_KIND_DESCRIPTION!Haskell	r	/record field/
+!_TAG_KIND_DESCRIPTION!Haskell	≡	/type synonym/
+!_TAG_KIND_DESCRIPTION!Haskell	~	/type signature/
+!_TAG_KIND_DESCRIPTION!Haskell	p	/pattern synonym/
+!_TAG_KIND_DESCRIPTION!Haskell	C	/type class/
+!_TAG_KIND_DESCRIPTION!Haskell	m	/type class member/
+!_TAG_KIND_DESCRIPTION!Haskell	i	/type class instance/
+!_TAG_KIND_DESCRIPTION!Haskell	x	/type class instance member/
+!_TAG_KIND_DESCRIPTION!Haskell	F	/type family/
+!_TAG_KIND_DESCRIPTION!Haskell	f	/type family instance/
+!_TAG_KIND_DESCRIPTION!Haskell	D	/data type family/
+!_TAG_KIND_DESCRIPTION!Haskell	d	/data type family instance/
+!_TAG_KIND_DESCRIPTION!Haskell	I	/foreign import/
+!_TAG_KIND_DESCRIPTION!Haskell	E	/foreign export/
+BearerToken	src/OM/HTTP.hs	338;"	c	term:BearerToken {unBearerToken :: Text}
+OM.HTTP	src/OM/HTTP.hs	7;"	M
+ToHttpApiData	src/OM/HTTP.hs	341;"	i	instance:ToHttpApiData BearerToken
+connProxy	src/OM/HTTP.hs	277;"	kind:⊢	file:	type:IO ByteString -> (ByteString -> IO ()) -> IO ()
+defaultIndex	src/OM/HTTP.hs	327;"	kind:⊢	type:Middleware
+doInsert	src/OM/HTTP.hs	110;"	kind:⊢	file:	type:[Header] -> [Header]
+errResponse	src/OM/HTTP.hs	233;"	kind:⊢	file:	type:UUID -> Response
+getUUID	src/OM/HTTP.hs	240;"	kind:⊢	file:	type:(MonadIO m) => m UUID
+go	src/OM/HTTP.hs	157;"	kind:⊢	file:	type:[Header] -> [Header]
+header	src/OM/HTTP.hs	100;"	kind:⊢	file:	type:Header
+hstsDirective	src/OM/HTTP.hs	97;"	kind:⊢	type:NominalDiffTime -> Middleware
+insertResponseHeaderIfMissing	src/OM/HTTP.hs	106;"	kind:⊢	type:Header -> Middleware
+logExceptionsAndContinue	src/OM/HTTP.hs	222;"	kind:⊢	type:(Loc -> LogSource -> LogLevel -> LogStr -> IO ()) -> Middleware
+logProblem	src/OM/HTTP.hs	253;"	kind:⊢	file:	type:(MonadLoggerIO m) => SomeException -> m UUID
+loggingRespond	src/OM/HTTP.hs	181;"	kind:⊢	file:	type:UTCTime -> Response -> IO ResponseReceived
+loggingRespond	src/OM/HTTP.hs	245;"	kind:⊢	file:	type:Response -> IO ResponseReceived
+overwriteResponseHeader	src/OM/HTTP.hs	153;"	kind:⊢	type:Header -> Middleware
+pipeInbound	src/OM/HTTP.hs	295;"	kind:⊢	file:	type:Socket -> IO ByteString -> IO ()
+pipeOutbound	src/OM/HTTP.hs	305;"	kind:⊢	file:	type:Socket -> (ByteString -> IO ()) -> IO ()
+printResource	src/OM/HTTP.hs	391;"	kind:⊢	file:	type:String -> IO ()
+readStaticFiles	src/OM/HTTP.hs	396;"	kind:⊢	file:	type:IO [(FilePath, String)]
+reqStr	src/OM/HTTP.hs	195;"	kind:⊢	file:	type:Text
+requestLogging	src/OM/HTTP.hs	172;"	kind:⊢	type:(Loc -> LogSource -> LogLevel -> LogStr -> IO ()) -> Middleware
+runTlsRedirect	src/OM/HTTP.hs	78;"	kind:⊢	type:(Loc -> LogSource -> LogLevel -> LogStr -> IO ()) -> ByteString -> Version -> ByteString -> IO ()
+serverValue	src/OM/HTTP.hs	146;"	kind:λ	file:
+setServer	src/OM/HTTP.hs	141;"	kind:⊢	type:ByteString -> Version -> Middleware
+showStatus	src/OM/HTTP.hs	203;"	kind:⊢	file:	type:Status -> Text
+sshConnect	src/OM/HTTP.hs	266;"	kind:⊢	type:Middleware
+staticPage	src/OM/HTTP.hs	315;"	kind:⊢	type:[Text] -> ByteString -> BSL.ByteString -> Middleware
+staticSite	src/OM/HTTP.hs	358;"	kind:⊢	type:FilePath -> Q (TExp Middleware)
+tlsRedirect	src/OM/HTTP.hs	120;"	kind:⊢	file:	type:ByteString -> Application
+toUrlPiece	src/OM/HTTP.hs	342;"	x	file:	instance:ToHttpApiData BearerToken
+unBearerToken	src/OM/HTTP.hs	339;"	r
