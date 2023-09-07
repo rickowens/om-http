@@ -28,7 +28,7 @@ common dependencies
     , network          >= 3.1.2.7   && < 3.2
     , om-show          >= 0.1.2.6   && < 0.2
     , safe-exceptions  >= 0.1.7.3   && < 0.2
-    , servant          >= 0.19      && < 0.20
+    , servant          >= 0.19      && < 0.21
     , template-haskell >= 2.17.0.0  && < 2.20
     , text             >= 1.2.5.0   && < 2.1
     , time             >= 1.9.3     && < 1.13
